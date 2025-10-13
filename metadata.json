@@ -1,0 +1,5 @@
+{
+  "name": "農會匯款單產生器",
+  "description": "An application to help manage and generate bulk payment forms for vendors. It allows searching, selecting, and adding vendors to a transfer list, which can then be exported as a CSV file. It features an AI-powered parser to easily add new vendor information.",
+  "requestFramePermissions": []
+}
