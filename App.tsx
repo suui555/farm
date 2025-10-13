@@ -10,10 +10,17 @@ const App: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [transferList, setTransferList] = useState<TransferItem[]>(() => {
     try {
+      // Detect hard reload and clear previous session data for a fresh list
+      const nav = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined);
+      const isReload = nav?.type === 'reload';
+      if (isReload) {
+        try { sessionStorage.removeItem('transferList'); } catch {}
+        return [];
+      }
+
       const stored = sessionStorage.getItem('transferList');
       if (!stored) return [];
       const parsed = JSON.parse(stored) as TransferItem[];
-      // Ensure numeric fields are numbers after JSON parse
       return parsed.map(item => ({
         ...item,
         amountPayable: Number(item.amountPayable) || 0,
