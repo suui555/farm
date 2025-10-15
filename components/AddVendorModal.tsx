@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Vendor, BankInfo } from '../types';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { parseVendorInfo, isGeminiAvailable } from '../services/geminiService';
-import { searchBanksOnline } from '../services/googleSheetService';
+import { searchBanksOnline, addBankCodeOnline } from '../services/googleSheetService';
 
 
 interface AddVendorModalProps {
@@ -131,6 +131,18 @@ export const AddVendorModal: React.FC<AddVendorModalProps> = ({ isOpen, onClose,
     }
   };
 
+  // 檢查銀行名稱是否已經存在於銀行代碼工作表中
+  const isBankCodeInDatabase = useCallback(async (bankName: string): Promise<boolean> => {
+    try {
+      const results = await searchBanksOnline(bankName);
+      // 如果搜尋結果中有完全匹配的銀行名稱，則表示已存在
+      return results.some(bank => bank.fullName === bankName);
+    } catch (err) {
+      console.error("檢查銀行代碼失敗:", err);
+      return false; // 如果檢查失敗，假設不存在，允許新增
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vendorData.name || !vendorData.bank || !vendorData.bankCode || !vendorData.accountNumber) {
@@ -140,6 +152,20 @@ export const AddVendorModal: React.FC<AddVendorModalProps> = ({ isOpen, onClose,
     setError(null);
     setIsSubmitting(true);
     try {
+      // 檢查銀行名稱是否已經存在於銀行代碼工作表中
+      const bankExists = await isBankCodeInDatabase(vendorData.bank);
+      
+      // 如果銀行名稱不存在，則新增到銀行代碼工作表中
+      if (!bankExists) {
+        try {
+          await addBankCodeOnline(vendorData.bank, vendorData.bankCode);
+          console.log(`已新增銀行代碼: ${vendorData.bank} (${vendorData.bankCode})`);
+        } catch (bankErr) {
+          console.error("新增銀行代碼失敗:", bankErr);
+          // 即使新增銀行代碼失敗，仍然繼續儲存廠商
+        }
+      }
+
       const finalVendorData = {
         ...vendorData,
         taxId: vendorData.sheetName === '廠商' ? vendorData.taxId : '',
@@ -211,6 +237,7 @@ export const AddVendorModal: React.FC<AddVendorModalProps> = ({ isOpen, onClose,
                       <div>
                         <label htmlFor="bankCode" className="block text-sm font-medium text-gray-700">銀行代碼 <span className="text-red-500">*</span></label>
                         <input type="text" name="bankCode" id="bankCode" value={vendorData.bankCode} onChange={handleFormChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="可手動輸入" />
+                        <p className="mt-1 text-xs text-gray-500">若銀行名稱不在資料庫中，系統會自動將此銀行代碼新增至資料庫</p>
                       </div>
                       <div className="sm:col-span-2">
                         <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">銀行帳號 <span className="text-red-500">*</span></label>

@@ -60,3 +60,7 @@ export const addVendorOnline = async (vendorData: Omit<Vendor, 'id'>): Promise<{
 export const updateMainDataInCloud = async (items: TransferItem[]): Promise<{ status: string; downloadUrl: string; }> => {
   return await callAppsScript<{ status: string; downloadUrl: string; }>('updateMainData', { items });
 };
+
+export const addBankCodeOnline = async (bankName: string, bankCode: string): Promise<{ status: string }> => {
+  return await callAppsScript<{ status: string }>('addBankCode', { bankName, bankCode });
+};
